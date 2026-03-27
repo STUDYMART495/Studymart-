@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Studymart Dashboards</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #fff;
+      --text: #1c2540;
+      --muted: #69708a;
+      --primary: #3f67ff;
+      --border: #e7e9f3;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      padding: 16px 24px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    h1 { margin: 0; font-size: 1.3rem; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 3px 12px rgba(19, 33, 68, 0.04);
+      min-height: 500px;
+    }
+
+    .panel h2 {
+      margin-top: 0;
+      font-size: 1.1rem;
+    }
+
+    .muted {
+      color: var(--muted);
+      margin-top: -4px;
+      margin-bottom: 16px;
+      font-size: 0.92rem;
+    }
+
+    form {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font: inherit;
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      width: fit-content;
+    }
+
+    .course-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .course {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .course h3 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+    }
+
+    .empty {
+      color: var(--muted);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      background: #fcfdff;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Studymart • Admin & User Dashboards</h1>
+  </header>
+
+  <main class="layout">
+    <section class="panel" aria-labelledby="admin-dashboard-title">
+      <h2 id="admin-dashboard-title">Admin Dashboard</h2>
+      <p class="muted">Admins can post new courses. Posted courses appear instantly in the user dashboard.</p>
+      <form id="course-form">
+        <input id="title" name="title" placeholder="Course title" required />
+        <input id="instructor" name="instructor" placeholder="Instructor name" required />
+        <textarea id="description" name="description" placeholder="Course description" required></textarea>
+        <button type="submit">Post course</button>
+      </form>
+
+      <h3>Posted courses</h3>
+      <div id="admin-courses" class="course-list"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="user-dashboard-title">
+      <h2 id="user-dashboard-title">User Dashboard</h2>
+      <p class="muted">Users can browse all courses published by the admin.</p>
+      <div id="user-courses" class="course-list"></div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "studymart_courses";
+
+    const form = document.getElementById("course-form");
+    const adminCourses = document.getElementById("admin-courses");
+    const userCourses = document.getElementById("user-courses");
+
+    const readCourses = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const saveCourses = (courses) => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(courses));
+    };
+
+    const courseTemplate = (course) => `
+      <article class="course">
+        <h3>${course.title}</h3>
+        <p><strong>Instructor:</strong> ${course.instructor}</p>
+        <p>${course.description}</p>
+      </article>
+    `;
+
+    const render = () => {
+      const courses = readCourses();
+
+      if (!courses.length) {
+        const empty = '<div class="empty">No courses posted yet.</div>';
+        adminCourses.innerHTML = empty;
+        userCourses.innerHTML = empty;
+        return;
+      }
+
+      const courseCards = courses
+        .map(courseTemplate)
+        .join("");
+
+      adminCourses.innerHTML = courseCards;
+      userCourses.innerHTML = courseCards;
+    };
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const newCourse = {
+        id: Date.now(),
+        title: form.title.value.trim(),
+        instructor: form.instructor.value.trim(),
+        description: form.description.value.trim()
+      };
+
+      if (!newCourse.title || !newCourse.instructor || !newCourse.description) {
+        return;
+      }
+
+      const courses = readCourses();
+      courses.unshift(newCourse);
+      saveCourses(courses);
+
+      form.reset();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
